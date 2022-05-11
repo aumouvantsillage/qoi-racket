@@ -7,4 +7,4 @@
 (define collection "qoi")
 (define version "0.1")
 (define license 'MPL-2.0)
-(define deps '("base"))
+(define deps '("draw-lib"))

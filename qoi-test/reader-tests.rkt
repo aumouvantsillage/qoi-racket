@@ -4,7 +4,4 @@
 
 #lang racket
 
-(provide read-qoi)
-
-(define (read-qoi [in (current-input-port)])
-  (void))
+; TODO

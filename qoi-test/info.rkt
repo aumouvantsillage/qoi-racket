@@ -2,9 +2,9 @@
 ; License, v. 2.0. If a copy of the MPL was not distributed with this
 ; file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-#lang racket
+#lang info
 
-(provide read-qoi)
-
-(define (read-qoi [in (current-input-port)])
-  (void))
+(define collection "qoi-test")
+(define version "0.1")
+(define license 'MPL-2.0)
+(define deps '("rackunit" "qoi"))
