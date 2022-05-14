@@ -12,7 +12,7 @@
 (define-runtime-path png-filename "qoi_test_images/dice.png")
 (define-runtime-path qoi-filename "qoi_test_images/dice.out.qoi")
 
-(define dice-img (make-object bitmap% png-filename))
+(define dice-img (make-object bitmap% png-filename 'png/alpha))
 
 (with-output-to-file qoi-filename  #:exists 'replace
   (thunk

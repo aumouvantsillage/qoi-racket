@@ -30,14 +30,6 @@
     (bytes-join #"")
     (write-bytes out)))
 
-(define (index-position pixel)
-  (match-define (list a r g b) (bytes->list pixel))
-  (remainder (+ (* 3 r) (* 5 g) (* 7 b) (* 11 a)) 64))
-
-(define (pixel-diff pixel pixel-prev)
-  (match-define (list da dr dg db) (map - (bytes->list pixel) (bytes->list pixel-prev)))
-  (list da dr dg db (- dr dg) (- db dg)))
-
 (define (write-qoi-chunks img out)
   ; Allocate a byte string for ARGB data.
   (define width  (send img get-width))
@@ -63,6 +55,7 @@
       (let ([pos (vector-member pixel pixel-index)])
         ; Write the pending runs if applicable.
         (write-qoi-op-runs run-length out)
+        (set! run-length 0)
         (if pos
           ; If the current pixel is present in the index, write a QOI_OP_INDEX chunk.
           (write-qoi-op-index pos out)
@@ -87,6 +80,15 @@
   ; Finalize last runs.
   (write-qoi-op-runs run-length out))
 
+(define (index-position pixel)
+  (match-define (list a r g b) (bytes->list pixel))
+  (remainder (+ (* 3 r) (* 5 g) (* 7 b) (* 11 a)) 64))
+
+(define (pixel-diff pixel pixel-prev)
+  (match-define (list da dr dg db)
+    (map - (bytes->list pixel) (bytes->list pixel-prev)))
+  (list da dr dg db (- dr dg) (- db dg)))
+
 (define (write-qoi-op-index pos out)
   (write-byte pos out))
 
@@ -94,7 +96,8 @@
   (define-values (full-runs last-len) (quotient/remainder len 62))
   (for ([n (in-range full-runs)])
     (write-byte #xFD))
-  (write-byte (+ #xC0 (sub1 last-len))))
+  (unless (zero? last-len)
+    (write-byte (+ #xC0 (sub1 last-len)))))
 
 (define (write-qoi-op-rgb pixel out)
   (write-byte #xFE)
