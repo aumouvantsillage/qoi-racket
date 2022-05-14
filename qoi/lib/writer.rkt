@@ -39,46 +39,45 @@
   ; Fill the byte string with image data.
   ; We could decide to read it a few rows at a time.
   (send img get-argb-pixels 0 0 width height argb)
-  ; Initialize the previous ARGB pixel value.
-  (define pixel-prev (bytes 255 0 0 0))
   ; Allocate the index of previous pixel values.
   (define pixel-index (make-vector 64 (make-bytes 4)))
-  ; Initialize the current run length.
-  (define run-length 0)
 
-  (for ([n (in-range 0 blen 4)])
-    (define pixel (subbytes argb n (+ 4 n)))
-    (if (equal? pixel pixel-prev)
-      ; If the pixel value has not changed, increment the current run length.
-      (set! run-length (add1 run-length))
-      ; If the pixel value has changed, locate it in the index.
-      (let ([pos (vector-member pixel pixel-index)])
-        ; Write the pending runs if applicable.
-        (write-qoi-op-runs run-length out)
-        (set! run-length 0)
-        (if pos
-          ; If the current pixel is present in the index, write a QOI_OP_INDEX chunk.
-          (write-qoi-op-index pos out)
-          ; Otherwise, compute the difference between the current and previous pixels.
-          (match-let ([(list da dr dg db dr-dg db-dg) (pixel-diff pixel pixel-prev)])
-            ; If the current pixel has the same alpha as the previous pixel,
-            ; write the current RGB pixel data.
-            (if (zero? da)
-              (cond [(and (<= -2 dr 1) (<= -2 dg 1) (<= -2 db 1))
+  (define last-run-length
+    (for/fold ([pixel-prev (bytes 255 0 0 0)]
+               [run-length 0] #:result run-length)
+              ([n (in-range 0 blen 4)])
+      (define pixel (subbytes argb n (+ 4 n)))
+      (if (equal? pixel pixel-prev)
+        ; If the pixel value has not changed, increment the current run length.
+        (values pixel (add1 run-length))
+        ; If the pixel value has changed, locate it in the index.
+        (let ([pos (index-position pixel)])
+          ; Write the previous runs if applicable.
+          (write-qoi-op-runs run-length out)
+          (if (equal? pixel (vector-ref pixel-index pos))
+            ; If the current pixel is present in the index, write a QOI_OP_INDEX chunk.
+            (write-qoi-op-index pos out)
+            ; Otherwise, compute the difference between the current and previous pixels.
+            (match-let ([(list da dr dg db dr-dg db-dg) (pixel-diff pixel pixel-prev)])
+              ; Add the current pixel to the index.
+              (vector-set! pixel-index pos pixel)
+              (cond [(not (zero? da))
+                     ; If the alpha value has changed, write the new ARGB pixel data (QOI_OP_RGBA).
+                     (write-qoi-op-rgba pixel out)]
+                    [(and (<= -2 dr 1) (<= -2 dg 1) (<= -2 db 1))
+                     ; If the RGB deltas are small enough, encode the differences (QOI_OP_DIFF).
                      (write-qoi-op-diff dr dg db out)]
                     [(and (<= -32 dg 31) (<= -8 dr-dg 7) (<= -8 db-dg 7))
+                     ; Use the green delta as a reference to encode the relative
+                     ; red and blue deltas (QOI_OP_LUMA).)
                      (write-qoi-op-luma dg dr-dg db-dg out)]
                     [else
-                     (write-qoi-op-rgb pixel out)])
-              ; If the alpha value has changed, write the current ARGB pixel data.
-              (write-qoi-op-rgba pixel out))))))
-    ; Update the previous pixel value.
-    (set! pixel-prev pixel)
-    ; Add the current pixel to the index.
-    (vector-set! pixel-index (index-position pixel) pixel))
-
+                     ; As a fallback, write the RGB data (QOI_OP_RGB).
+                     (write-qoi-op-rgb pixel out)])))
+          ; Reset the current run length.
+          (values pixel 0)))))
   ; Finalize last runs.
-  (write-qoi-op-runs run-length out))
+  (write-qoi-op-runs last-run-length out))
 
 (define (index-position pixel)
   (match-define (list a r g b) (bytes->list pixel))
