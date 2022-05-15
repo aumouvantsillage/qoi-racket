@@ -12,11 +12,7 @@
 (provide image-write-qoi)
 
 (define (image-write-qoi img [out (current-output-port)])
-  (write-qoi-header img out)
-  (write-qoi-chunks img out)
-  (write-bytes qoi-end-marker out))
-
-(define (write-qoi-header img out)
+  ; Write the QOI header.
   (~>
     (list
       qoi-magic
@@ -27,18 +23,22 @@
         (image-channels   img)
         (image-colorspace img)))
     (bytes-join #"")
-    (write-bytes out)))
+    (write-bytes out))
 
-(define (write-qoi-chunks img out)
+  ; Get the ARGB pixel data from the image.
   (define pixels (image-pixels img))
   ; Allocate the index of previous pixel values.
   (define pixel-index (make-vector 64 (make-bytes 4)))
 
-  (define last-run-length
+  (~>
+    ; Process pixels in raster-scan order.
+    ; The loop will return the length of the last run.
     (for/fold ([pixel-prev qoi-pixel-init]
-               [run-length 0] #:result run-length)
+               [run-length 0]
+               #:result run-length)
               ([n (in-range 0 (bytes-length pixels) 4)])
       (define pixel (subbytes pixels n (+ 4 n)))
+      ; Check whether we are continuing a run.
       (if (equal? pixel pixel-prev)
         ; If the pixel value has not changed, increment the current run length.
         (values pixel (add1 run-length))
@@ -46,13 +46,15 @@
         (let ([pos (qoi-index-position pixel)])
           ; Write the previous runs if applicable.
           (write-qoi-op-runs run-length out)
+          ; Check whether the current pixel is present in the index.
           (if (equal? pixel (vector-ref pixel-index pos))
             ; If the current pixel is present in the index, write a QOI_OP_INDEX chunk.
             (write-qoi-op-index pos out)
-            ; Otherwise, compute the difference between the current and previous pixels.
+            ; Otherwise, compute the difference from the previous to the current pixel.
             (match-let ([(list da dr dg db dr-dg db-dg) (pixel-diff pixel pixel-prev)])
               ; Add the current pixel to the index.
               (vector-set! pixel-index pos pixel)
+              ; Check whether differential or luma encoding can be applied.
               (cond [(not (zero? da))
                      ; If the alpha value has changed, write the new ARGB pixel data (QOI_OP_RGBA).
                      (write-qoi-op-rgba pixel out)]
@@ -67,9 +69,11 @@
                      ; As a fallback, write the RGB data (QOI_OP_RGB).
                      (write-qoi-op-rgb pixel out)])))
           ; Reset the current run length.
-          (values pixel 0)))))
-  ; Finalize last runs.
-  (write-qoi-op-runs last-run-length out))
+          (values pixel 0))))
+    ; Write the last run if applicable.
+    (write-qoi-op-runs out))
+  ; Write the QOI end marker.
+  (write-bytes qoi-end-marker out))
 
 (define (pixel-diff pixel pixel-prev)
   (match-define (list da dr dg db)
@@ -88,18 +92,18 @@
 
 (define (write-qoi-op-rgb pixel out)
   (write-byte qoi-op-rgb)
+  ; Write the RGB part of the ARGB data.
   (write-bytes (subbytes pixel 1 4)))
 
 (define (write-qoi-op-rgba pixel out)
   (write-byte qoi-op-rgba)
+  ; Write the RGB part of the ARGB data, and then the alpha value.
   (write-bytes (subbytes pixel 1 4))
   (write-byte (bytes-ref pixel 0)))
 
 (define (write-qoi-op-diff dr dg db out)
-  (write-byte (+ qoi-op-diff (* 16 dr) (* 4 dg) db
-                 qoi-op-diff-bias) out))
+  (write-byte (+ qoi-op-diff (* 16 dr) (* 4 dg) db qoi-op-diff-bias) out))
 
 (define (write-qoi-op-luma dg dr-dg db-dg out)
   (write-bytes (bytes (+ qoi-op-luma dg qoi-op-luma-dg-bias)
-                      (+ (* 16 dr-dg) db-dg qoi-op-luma-drdb-bias))
-               out))
+                      (+ (* 16 dr-dg) db-dg qoi-op-luma-drdb-bias)) out))
