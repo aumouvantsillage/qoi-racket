@@ -4,22 +4,39 @@
 
 #lang racket
 
-(require racket/draw)
+(require
+  racket/draw
+  "qoi-defs.rkt")
 
 (provide
   (struct-out image)
+  make-image
   image-read-bitmap)
 
-(struct image (width height channels colorspace pixels))
+(struct image (width height channels colorspace pixels)
+  #:constructor-name private-image)
+
+(define (make-image width height channels colorspace)
+  (unless (> width 0)
+    (raise-argument-error 'make-image "width > 0" width))
+  (unless (> height 0)
+    (raise-argument-error 'make-image "height > 0" height))
+  (define size (* width height))
+  (unless (<= size qoi-pixels-max)
+    (raise-argument-error 'make-image (format "width * height <= ~a" qoi-pixels-max) size))
+  (unless (<= 3 channels 4)
+    (raise-argument-error 'make-image "channels = 3|4" channels))
+  (unless (<= 0 colorspace 1)
+    (raise-argument-error 'make-image "colorspace = 0|1" colorspace))
+  (private-image width height channels colorspace (make-bytes (* 4 size))))
 
 (define (image-read-bitmap in)
   (define bitmap (read-bitmap in))
   (define width  (send bitmap get-width))
   (define height (send bitmap get-height))
-  (define pixels (make-bytes (* 4 width height)))
-  (send bitmap get-argb-pixels 0 0 width height pixels)
-  (image width
-         height
-         (if (send bitmap has-alpha-channel?) 4 3)
-         1 ; read-bitmap always applies gamma correction
-         pixels))
+  (define img (make-image width
+                          height
+                          (if (send bitmap has-alpha-channel?) 4 3)
+                          qoi-colorspace-linear)) ; read-bitmap always applies gamma correction
+  (send bitmap get-argb-pixels 0 0 width height (image-pixels img))
+  img)

@@ -4,4 +4,13 @@
 
 #lang racket
 
-; TODO
+(require
+  racket/runtime-path
+  qoi)
+
+(define-runtime-path qoi-filename "qoi_test_images/dice.qoi")
+(define-runtime-path png-filename "qoi_test_images.out/dice.png")
+
+(with-input-from-file qoi-filename
+  (thunk
+    (image-read-qoi)))

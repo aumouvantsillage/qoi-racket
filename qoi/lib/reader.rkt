@@ -4,7 +4,14 @@
 
 #lang racket
 
-(provide read-qoi)
+(require
+  "qoi-defs.rkt"
+  "image.rkt")
 
-(define (read-qoi [in (current-input-port)])
-  (void))
+(provide image-read-qoi)
+
+(define (image-read-qoi [in (current-input-port)])
+  ; Read the QOI header.
+  (define m (read-bytes 4 in))
+  (unless (equal? qoi-magic m)
+    (raise-argument-error 'image-read-qoi (bytes->string/utf-8 qoi-magic) m)))

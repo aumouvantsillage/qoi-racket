@@ -6,6 +6,11 @@
 
 (provide (all-defined-out))
 
+(define qoi-pixels-max 400000000)
+
+(define qoi-colorspace-srgb   0)
+(define qoi-colorspace-linear 1)
+
 ; Magic bytes at the beginning of the QOI header.
 (define qoi-magic #"qoif")
 
