@@ -5,9 +5,11 @@
 #lang racket/base
 
 (require
+  "lib/image.rkt"
   "lib/reader.rkt"
   "lib/writer.rkt")
 
 (provide
-  read-qoi
-  write-qoi)
+  (all-from-out "lib/image.rkt")
+  (all-from-out "lib/reader.rkt")
+  (all-from-out "lib/writer.rkt"))

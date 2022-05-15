@@ -5,15 +5,14 @@
 #lang racket
 
 (require
-  racket/draw
   racket/runtime-path
   qoi)
 
 (define-runtime-path png-filename "qoi_test_images/dice.png")
 (define-runtime-path qoi-filename "qoi_test_images.out/dice.qoi")
 
-(define dice-img (read-bitmap png-filename))
+(define dice-img (image-read-bitmap png-filename))
 
 (with-output-to-file qoi-filename  #:exists 'replace
   (thunk
-    (write-qoi dice-img)))
+    (image-write-qoi dice-img)))
