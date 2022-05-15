@@ -51,7 +51,7 @@
             ; If the current pixel is present in the index, write a QOI_OP_INDEX chunk.
             (write-qoi-op-index pos out)
             ; Otherwise, compute the difference from the previous to the current pixel.
-            (match-let ([(list da dr dg db dr-dg db-dg) (pixel-diff pixel pixel-prev)])
+            (let-values ([(da dr dg db dr-dg db-dg) (pixel-diff pixel pixel-prev)])
               ; Add the current pixel to the index.
               (vector-set! pixel-index pos pixel)
               ; Check whether differential or luma encoding can be applied.
@@ -78,7 +78,7 @@
 (define (pixel-diff pixel pixel-prev)
   (match-define (list da dr dg db)
     (map - (bytes->list pixel) (bytes->list pixel-prev)))
-  (list da dr dg db (- dr dg) (- db dg)))
+  (values da dr dg db (- dr dg) (- db dg)))
 
 (define (write-qoi-op-index pos out)
   (write-byte (+ qoi-op-index pos) out))
