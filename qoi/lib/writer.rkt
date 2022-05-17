@@ -5,7 +5,6 @@
 #lang racket
 
 (require
-  threading
   "qoi-defs.rkt"
   "image.rkt")
 
@@ -13,8 +12,8 @@
 
 (define (image-write-qoi img [out (current-output-port)])
   ; Write the QOI header.
-  (~>
-    (list
+  (write-bytes
+    (bytes-append
       qoi-magic
       ; Image width and height, unsigned 32-bit, big-endian.
       (integer->integer-bytes (image-width  img) 4 #f #t)
@@ -22,15 +21,14 @@
       (bytes
         (image-channels   img)
         (image-colorspace img)))
-    (bytes-join #"")
-    (write-bytes out))
+    out)
 
   ; Get the ARGB pixel data from the image.
   (define pixels (image-pixels img))
   ; Allocate the index of previous pixel values.
   (define pixel-index (make-vector 64 (make-bytes 4)))
 
-  (~>
+  (define last-run-length
     ; Process pixels in raster-scan order.
     ; The loop will return the length of the last run.
     (for/fold ([pixel-prev qoi-pixel-init]
@@ -69,16 +67,16 @@
                      ; As a fallback, write the RGB data (QOI_OP_RGB).
                      (write-qoi-op-rgb pixel out)])))
           ; Reset the current run length.
-          (values pixel 0))))
-    ; Write the last run if applicable.
-    (write-qoi-op-runs out))
+          (values pixel 0)))))
+  ; Write the last run if applicable.
+  (write-qoi-op-runs last-run-length out)
   ; Write the QOI end marker.
   (write-bytes qoi-end-marker out))
 
 (define (pixel-diff pixel pixel-prev)
   (match-define (list da dr dg db)
-    (map - (bytes->list pixel) (bytes->list pixel-prev)))
-  (values da dr dg db (- dr dg) (- db dg)))
+    (map qoi- (bytes->list pixel) (bytes->list pixel-prev)))
+  (values da dr dg db (qoi- dr dg) (qoi- db dg)))
 
 (define (write-qoi-op-index pos out)
   (write-byte (+ qoi-op-index pos) out))

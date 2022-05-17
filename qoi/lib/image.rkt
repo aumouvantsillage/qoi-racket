@@ -11,7 +11,8 @@
 (provide
   (struct-out image)
   make-image
-  image-read-bitmap)
+  image-read-bitmap
+  image-write-bitmap)
 
 (struct image (width height channels colorspace pixels)
   #:constructor-name private-image)
@@ -40,3 +41,10 @@
                           qoi-colorspace-linear)) ; read-bitmap always applies gamma correction
   (send bitmap get-argb-pixels 0 0 width height (image-pixels img))
   img)
+
+(define (image-write-bitmap img name)
+  (println (image-pixels img))
+  (define bitmap (make-object bitmap% (image-pixels img)
+                                      (image-width  img)
+                                      (image-height img)))
+  (send bitmap save-file name 'png))

@@ -23,6 +23,8 @@
 (define qoi-op-rgba  #xFF)
 (define qoi-end-marker (bytes 0 0 0 0 0 0 0 1))
 
+(define qoi-op-mask  #xC0)
+
 ; Biases. diff and luma are cumulated for all fields.
 (define qoi-op-run-bias  -1)
 (define qoi-op-diff-bias 42)
@@ -39,3 +41,12 @@
 (define (qoi-index-position pixel)
   (match-define (list a r g b) (bytes->list pixel))
   (remainder (+ (* 3 r) (* 5 g) (* 7 b) (* 11 a)) 64))
+
+(define (qoi- a b)
+  (define a-b (- a b))
+  (cond [(> a-b  127) (- a-b 256)]
+        [(< a-b -128) (+ a-b 256)]
+        [else            a-b]))
+
+(define (qoi+ a b)
+  (bitwise-and #xFF (+ a b)))

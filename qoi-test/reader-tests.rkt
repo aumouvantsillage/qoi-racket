@@ -13,4 +13,4 @@
 
 (with-input-from-file qoi-filename
   (thunk
-    (image-read-qoi)))
+    (image-write-bitmap (image-read-qoi) png-filename)))
