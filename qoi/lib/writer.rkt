@@ -42,6 +42,7 @@
         (values pixel (add1 run-length))
         ; If the pixel value has changed, locate it in the index.
         (let ([pos (qoi-index-position pixel)])
+          (apply eprintf "~x ~x ~x ~x\n" (bytes->list pixel))
           ; Write the previous runs if applicable.
           (write-qoi-op-runs run-length out)
           ; Check whether the current pixel is present in the index.

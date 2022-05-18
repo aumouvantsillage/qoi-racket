@@ -12,6 +12,7 @@
   (struct-out image)
   make-image
   image-read-bitmap
+  image-read-rgba
   image-write-bitmap)
 
 (struct image (width height channels colorspace pixels)
@@ -40,6 +41,16 @@
                           (if (send bitmap has-alpha-channel?) 4 3)
                           qoi-colorspace-linear)) ; read-bitmap always applies gamma correction
   (send bitmap get-argb-pixels 0 0 width height (image-pixels img))
+  img)
+
+(define (image-read-rgba width height colorspace [in (current-input-port)])
+  (define img (make-image width height 4 colorspace))
+  (define pixels (image-pixels img))
+  (read-bytes! pixels in 1 (bytes-length pixels))
+  (define last-alpha (read-byte in))
+  (for ([n (in-range 0 (- (bytes-length pixels) 4) 4)])
+    (bytes-set! pixels n (bytes-ref pixels (+ 4 n))))
+  (bytes-set! pixels (- (bytes-length pixels) 3) last-alpha)
   img)
 
 (define (image-write-bitmap img name)
