@@ -98,8 +98,8 @@
   (write-bytes pixel))
 
 (define (write-qoi-op-diff dr dg db out)
-  (write-byte (+ qoi-op-diff (* 16 dr) (* 4 dg) db qoi-op-diff-bias) out))
+  (write-byte (+ qoi-op-diff (* 16 dr) (* 4 dg) db qoi-op-diff-bias/w) out))
 
 (define (write-qoi-op-luma dg dr-dg db-dg out)
-  (write-bytes (bytes (+ qoi-op-luma dg qoi-op-luma-dg-bias)
-                      (+ (* 16 dr-dg) db-dg qoi-op-luma-drdb-bias)) out))
+  (write-bytes (bytes (+ qoi-op-luma dg qoi-op-luma-dg-bias/w)
+                      (+ (* 16 dr-dg) db-dg qoi-op-luma-drb-bias/w)) out))

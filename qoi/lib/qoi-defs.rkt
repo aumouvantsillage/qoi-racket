@@ -26,10 +26,18 @@
 (define qoi-op-mask  #xC0)
 
 ; Biases. diff and luma are cumulated for all fields.
-(define qoi-op-run-bias  -1)
-(define qoi-op-diff-bias 42)
+(define qoi-op-run-bias -1)
+(define qoi-op-diff-bias 2)
 (define qoi-op-luma-dg-bias 32)
-(define qoi-op-luma-drdb-bias 136)
+(define qoi-op-luma-drb-bias 8)
+
+(define qoi-op-diff-bias/w (* qoi-op-diff-bias (+ 16 4 1)))
+(define qoi-op-diff-bias/r (- qoi-op-diff-bias))
+
+(define qoi-op-luma-dg-bias/w  qoi-op-luma-dg-bias)
+(define qoi-op-luma-drb-bias/w (* qoi-op-luma-drb-bias (+ 16 1)))
+(define qoi-op-luma-dg-bias/r  (- qoi-op-luma-dg-bias))
+(define qoi-op-luma-drb-bias/r (- qoi-op-luma-dg-bias/r qoi-op-luma-drb-bias))
 
 (define qoi-op-run-maxlen 62)
 (define qoi-op-run-full (+ qoi-op-run qoi-op-run-maxlen qoi-op-run-bias))

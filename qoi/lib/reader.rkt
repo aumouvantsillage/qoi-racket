@@ -54,21 +54,24 @@
 (define (read-qoi-op-index pixels n pixel-index pos)
   (update pixels n (vector-ref pixel-index pos)))
 
-(define (read-qoi-op-diff pixels n pixel-prev b)
-  (define-values (dr dgb) (quotient/remainder b   16))
-  (define-values (dg db)  (quotient/remainder dgb 4))
+(define (read-qoi-op-diff pixels n pixel-prev drgb)
+  (match-define (list r g b a) (bytes->list pixel-prev))
+  (define-values (dr dgb) (quotient/remainder drgb 16))
+  (define-values (dg db)  (quotient/remainder dgb  4))
   (update pixels n
-          (list->bytes (map qoi+ (bytes->list pixel-prev)
-                                 (list dr dg db 0)
-                                 (list -2 -2 -2 0)))))
+          (bytes (qoi+ r dr qoi-op-diff-bias/r)
+                 (qoi+ g dg qoi-op-diff-bias/r)
+                 (qoi+ b db qoi-op-diff-bias/r)
+                 a)))
 
-(define (read-qoi-op-luma pixels n pixel-prev dg b1)
-  (define-values (dr-dg db-dg) (quotient/remainder b1 16))
+(define (read-qoi-op-luma pixels n pixel-prev dg drb-dg)
+  (match-define (list r g b a) (bytes->list pixel-prev))
+  (define-values (dr-dg db-dg) (quotient/remainder drb-dg 16))
   (update pixels n
-          (list->bytes (map qoi+ (bytes->list pixel-prev)
-                                 (list dr-dg  dg db-dg 0)
-                                 (list    dg   0    dg 0)
-                                 (list   -40 -32   -40 0)))))
+          (bytes (qoi+ r dr-dg dg qoi-op-luma-drb-bias/r)
+                 (qoi+ g dg       qoi-op-luma-dg-bias/r)
+                 (qoi+ b db-dg dg qoi-op-luma-drb-bias/r)
+                 a)))
 
 (define (read-qoi-op-run pixels n pixel-prev b)
   (define run (- b qoi-op-run-bias))
@@ -83,12 +86,3 @@
 (define (update pixels n pix [bs pix])
   (bytes-copy! pixels n bs)
   (values pix (bytes-length bs)))
-
-; 95 95 F0 B9
-; 7C = 01 11 11 00
-; dr = 1 dg = 1 db = -2
-;
-;
-; diff = #x40 + 16(dr + 2) + 4(dg + 2) + (db + 2)
-;      = #x40 + 16dr + 4dg + db + 42
-; diff - #x40 - 42 = 16dr + 4dg + db
