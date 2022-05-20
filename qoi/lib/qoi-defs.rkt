@@ -31,16 +31,7 @@
 (define qoi-op-luma-dg-bias 32)
 (define qoi-op-luma-drb-bias 8)
 
-(define qoi-op-diff-bias/w (* qoi-op-diff-bias (+ 16 4 1)))
-(define qoi-op-diff-bias/r (- qoi-op-diff-bias))
-
-(define qoi-op-luma-dg-bias/w  qoi-op-luma-dg-bias)
-(define qoi-op-luma-drb-bias/w (* qoi-op-luma-drb-bias (+ 16 1)))
-(define qoi-op-luma-dg-bias/r  (- qoi-op-luma-dg-bias))
-(define qoi-op-luma-drb-bias/r (- qoi-op-luma-dg-bias/r qoi-op-luma-drb-bias))
-
 (define qoi-op-run-maxlen 62)
-(define qoi-op-run-full (+ qoi-op-run qoi-op-run-maxlen qoi-op-run-bias))
 
 ; Initial value of the previous pixel in the encoder/decoder (RGBA).
 (define qoi-pixel-init (bytes 0 0 0 255))

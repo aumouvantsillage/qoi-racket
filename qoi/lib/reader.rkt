@@ -54,6 +54,8 @@
 (define (read-qoi-op-index pixels n pixel-index pos)
   (update pixels n (vector-ref pixel-index pos)))
 
+(define qoi-op-diff-bias/r (- qoi-op-diff-bias))
+
 (define (read-qoi-op-diff pixels n pixel-prev drgb)
   (match-define (list r g b a) (bytes->list pixel-prev))
   (define-values (dr dgb) (quotient/remainder drgb 16))
@@ -63,6 +65,9 @@
                  (qoi+ g dg qoi-op-diff-bias/r)
                  (qoi+ b db qoi-op-diff-bias/r)
                  a)))
+
+(define qoi-op-luma-dg-bias/r  (- qoi-op-luma-dg-bias))
+(define qoi-op-luma-drb-bias/r (- qoi-op-luma-dg-bias/r qoi-op-luma-drb-bias))
 
 (define (read-qoi-op-luma pixels n pixel-prev dg drb-dg)
   (match-define (list r g b a) (bytes->list pixel-prev))

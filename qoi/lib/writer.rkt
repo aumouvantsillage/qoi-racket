@@ -81,6 +81,8 @@
 (define (write-qoi-op-index pos out)
   (write-byte (+ qoi-op-index pos) out))
 
+(define qoi-op-run-full (+ qoi-op-run qoi-op-run-maxlen qoi-op-run-bias))
+
 (define (write-qoi-op-runs len out)
   (define-values (full-runs last-len) (quotient/remainder len qoi-op-run-maxlen))
   (for ([n (in-range full-runs)])
@@ -97,9 +99,13 @@
   (write-byte qoi-op-rgba)
   (write-bytes pixel))
 
+(define qoi-op-diff-bias/w (* qoi-op-diff-bias (+ 16 4 1)))
+
 (define (write-qoi-op-diff dr dg db out)
   (write-byte (+ qoi-op-diff (* 16 dr) (* 4 dg) db qoi-op-diff-bias/w) out))
 
+(define qoi-op-luma-drb-bias/w (* qoi-op-luma-drb-bias (+ 16 1)))
+
 (define (write-qoi-op-luma dg dr-dg db-dg out)
-  (write-bytes (bytes (+ qoi-op-luma dg qoi-op-luma-dg-bias/w)
+  (write-bytes (bytes (+ qoi-op-luma dg qoi-op-luma-dg-bias)
                       (+ (* 16 dr-dg) db-dg qoi-op-luma-drb-bias/w)) out))
