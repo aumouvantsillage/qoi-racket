@@ -48,5 +48,5 @@
         [(< a-b -128) (+ a-b 256)]
         [else            a-b]))
 
-(define (qoi+ a b)
-  (bitwise-and #xFF (+ a b)))
+(define (qoi+ . args)
+  (bitwise-and #xFF (apply + args)))

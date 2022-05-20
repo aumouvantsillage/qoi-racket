@@ -11,8 +11,9 @@
 (provide
   (struct-out image)
   make-image
-  image-read-bitmap
   image-read-rgba
+  image-write-rgba
+  image-read-bitmap
   image-write-bitmap)
 
 (struct image (width height channels colorspace pixels)
@@ -36,6 +37,9 @@
   (define img (make-image width height 4 colorspace))
   (read-bytes! (image-pixels img) in)
   img)
+
+(define (image-write-rgba img [out (current-output-port)])
+  (write-bytes (image-pixels img) out))
 
 ; TODO Reorder ARGB to RGBA
 (define (image-read-bitmap in)

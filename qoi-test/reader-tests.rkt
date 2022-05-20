@@ -8,9 +8,13 @@
   racket/runtime-path
   qoi)
 
-(define-runtime-path qoi-filename "qoi_test_images/dice.qoi")
-(define-runtime-path png-filename "qoi_test_images.out/dice.png")
+(define-runtime-path qoi-filename  "qoi_test_images/dice.qoi")
+(define-runtime-path rgba-filename "qoi_test_images.out/dice.rgba")
 
-(with-input-from-file qoi-filename
+(define dice-img (with-input-from-file qoi-filename
+                    (thunk
+                      (image-read-qoi))))
+
+(with-output-to-file rgba-filename #:exists 'replace
   (thunk
-    (image-write-bitmap (image-read-qoi) png-filename)))
+    (image-write-rgba dice-img)))
