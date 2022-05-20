@@ -34,12 +34,12 @@
 (define qoi-op-run-maxlen 62)
 (define qoi-op-run-full (+ qoi-op-run qoi-op-run-maxlen qoi-op-run-bias))
 
-; Initial value of the previous pixel in the encoder/decoder (ARGB).
-(define qoi-pixel-init (bytes 255 0 0 0))
+; Initial value of the previous pixel in the encoder/decoder (RGBA).
+(define qoi-pixel-init (bytes 0 0 0 255))
 
 ; Hash function for the pixel index.
 (define (qoi-index-position pixel)
-  (match-define (list a r g b) (bytes->list pixel))
+  (match-define (list r g b a) (bytes->list pixel))
   (remainder (+ (* 3 r) (* 5 g) (* 7 b) (* 11 a)) 64))
 
 (define (qoi- a b)

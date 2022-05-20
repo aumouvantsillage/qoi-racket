@@ -42,7 +42,6 @@
         (values pixel (add1 run-length))
         ; If the pixel value has changed, locate it in the index.
         (let ([pos (qoi-index-position pixel)])
-          (apply eprintf "~x ~x ~x ~x\n" (bytes->list pixel))
           ; Write the previous runs if applicable.
           (write-qoi-op-runs run-length out)
           ; Check whether the current pixel is present in the index.
@@ -50,7 +49,7 @@
             ; If the current pixel is present in the index, write a QOI_OP_INDEX chunk.
             (write-qoi-op-index pos out)
             ; Otherwise, compute the difference from the previous to the current pixel.
-            (let-values ([(da dr dg db dr-dg db-dg) (pixel-diff pixel pixel-prev)])
+            (let-values ([(dr dg db da dr-dg db-dg) (pixel-diff pixel pixel-prev)])
               ; Add the current pixel to the index.
               (vector-set! pixel-index pos pixel)
               ; Check whether differential or luma encoding can be applied.
@@ -75,9 +74,9 @@
   (write-bytes qoi-end-marker out))
 
 (define (pixel-diff pixel pixel-prev)
-  (match-define (list da dr dg db)
+  (match-define (list dr dg db da)
     (map qoi- (bytes->list pixel) (bytes->list pixel-prev)))
-  (values da dr dg db (qoi- dr dg) (qoi- db dg)))
+  (values dr dg db da (qoi- dr dg) (qoi- db dg)))
 
 (define (write-qoi-op-index pos out)
   (write-byte (+ qoi-op-index pos) out))
@@ -91,14 +90,12 @@
 
 (define (write-qoi-op-rgb pixel out)
   (write-byte qoi-op-rgb)
-  ; Write the RGB part of the ARGB data.
-  (write-bytes (subbytes pixel 1 4)))
+  ; Write the RGB part of the RGBA data.
+  (write-bytes (subbytes pixel 0 3)))
 
 (define (write-qoi-op-rgba pixel out)
   (write-byte qoi-op-rgba)
-  ; Write the RGB part of the ARGB data, and then the alpha value.
-  (write-bytes (subbytes pixel 1 4))
-  (write-byte (bytes-ref pixel 0)))
+  (write-bytes pixel))
 
 (define (write-qoi-op-diff dr dg db out)
   (write-byte (+ qoi-op-diff (* 16 dr) (* 4 dg) db qoi-op-diff-bias) out))

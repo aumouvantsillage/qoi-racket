@@ -32,6 +32,12 @@
     (raise-argument-error 'make-image "colorspace = 0|1" colorspace))
   (private-image width height channels colorspace (make-bytes (* 4 size))))
 
+(define (image-read-rgba width height colorspace [in (current-input-port)])
+  (define img (make-image width height 4 colorspace))
+  (read-bytes! (image-pixels img) in)
+  img)
+
+; TODO Reorder ARGB to RGBA
 (define (image-read-bitmap in)
   (define bitmap (read-bitmap in))
   (define width  (send bitmap get-width))
@@ -43,16 +49,7 @@
   (send bitmap get-argb-pixels 0 0 width height (image-pixels img))
   img)
 
-(define (image-read-rgba width height colorspace [in (current-input-port)])
-  (define img (make-image width height 4 colorspace))
-  (define pixels (image-pixels img))
-  (read-bytes! pixels in 1 (bytes-length pixels))
-  (define last-alpha (read-byte in))
-  (for ([n (in-range 0 (- (bytes-length pixels) 4) 4)])
-    (bytes-set! pixels n (bytes-ref pixels (+ 4 n))))
-  (bytes-set! pixels (- (bytes-length pixels) 3) last-alpha)
-  img)
-
+; TODO Reorder RGBA to ARGB
 (define (image-write-bitmap img name)
   (println (image-pixels img))
   (define bitmap (make-object bitmap% (image-pixels img)
