@@ -5,16 +5,13 @@
 #lang racket
 
 (require
-  racket/draw
   "qoi-defs.rkt")
 
 (provide
   (struct-out image)
   make-image
   image-read-rgba
-  image-write-rgba
-  image-read-bitmap
-  image-write-bitmap)
+  image-write-rgba)
 
 (struct image (width height channels colorspace pixels)
   #:constructor-name private-image)
@@ -33,30 +30,10 @@
     (raise-argument-error 'make-image "colorspace = 0|1" colorspace))
   (private-image width height channels colorspace (make-bytes (* 4 size))))
 
-(define (image-read-rgba width height colorspace [in (current-input-port)])
-  (define img (make-image width height 4 colorspace))
+(define (image-read-rgba width height channels colorspace [in (current-input-port)])
+  (define img (make-image width height channels colorspace))
   (read-bytes! (image-pixels img) in)
   img)
 
 (define (image-write-rgba img [out (current-output-port)])
   (write-bytes (image-pixels img) out))
-
-; TODO Reorder ARGB to RGBA
-(define (image-read-bitmap in)
-  (define bitmap (read-bitmap in))
-  (define width  (send bitmap get-width))
-  (define height (send bitmap get-height))
-  (define img (make-image width
-                          height
-                          (if (send bitmap has-alpha-channel?) 4 3)
-                          qoi-colorspace-linear)) ; read-bitmap always applies gamma correction
-  (send bitmap get-argb-pixels 0 0 width height (image-pixels img))
-  img)
-
-; TODO Reorder RGBA to ARGB
-(define (image-write-bitmap img name)
-  (println (image-pixels img))
-  (define bitmap (make-object bitmap% (image-pixels img)
-                                      (image-width  img)
-                                      (image-height img)))
-  (send bitmap save-file name 'png))

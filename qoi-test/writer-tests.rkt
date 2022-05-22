@@ -8,13 +8,23 @@
   racket/runtime-path
   qoi)
 
-(define-runtime-path rgba-filename "qoi_test_images/dice.rgba")
-(define-runtime-path qoi-filename "qoi_test_images.out/dice.qoi")
+(define-runtime-path in-dir  "qoi_test_images")
+(define-runtime-path out-dir "qoi_test_images.out")
 
-(define dice-img (with-input-from-file rgba-filename
-                   (thunk
-                     (image-read-rgba 800 600 0))))
-
-(with-output-to-file qoi-filename #:exists 'replace
+(with-input-from-file (build-path in-dir "images.lst")
   (thunk
-    (image-write-qoi dice-img)))
+    (for ([l (in-lines)])
+      (match-define (list name width height cc) (string-split l ","))
+      (unless (regexp-match #rx"s?rgba?" cc)
+        (error "Unsupported colorspace/channel" cc))
+      (printf "Converting: ~a.rgba to QOI\n" name)
+      (define in-file  (build-path in-dir  (format "~a.rgba" name)))
+      (define out-file (build-path out-dir (format "~a.qoi"  name)))
+      (define img (with-input-from-file in-file
+                    (thunk
+                      (image-read-rgba (string->number width)
+                                       (string->number height)
+                                       (if (string-suffix? cc "a") 4 3)
+                                       (if (string-prefix? cc "s") 0 1)))))
+      (with-output-to-file out-file #:exists 'replace
+        (thunk (image-write-qoi img))))))
