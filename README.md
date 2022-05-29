@@ -1,6 +1,12 @@
 Quite OK Image format encoder and decoder in Racket
 ===
 
+This repository contains a [Racket](https://racket-lang.org/) implementation of
+an encoder and a decoder for the [QOI image format](https://qoiformat.org/).
+
+At the moment, this implementation can only convert raw RGBA images to/from QOI.
+Other image formats can be handled by separate image manipulation tools or libraries.
+
 Installation
 ------------
 
@@ -46,7 +52,9 @@ racket reader-tests.rkt
 API
 ---
 
-### `(struct image (width height channels colorspace pixels)`
+```racket
+(struct image (width height channels colorspace pixels))
+```
 
 Structure type for images. Use `make-image` to create a new image instance.
 
@@ -56,26 +64,36 @@ Structure type for images. Use `make-image` to create a new image instance.
 * `colorspace`: 0=sRGB with linear alpha, 1=all channels linear.
 * `pixels`: a mutable [byte string](https://docs.racket-lang.org/reference/bytestrings.html) with RGBA pixel values (one byte per channel).
 
-### `(make-image width height channels colorspace)`
+```racket
+(make-image width height channels colorspace)
+```
 
 Creates and returns a new instance of the `image` structure type.
 
-### `(image-read-rgba width height channels colorspace [in (current-input-port)])`
+```racket
+(image-read-rgba width height channels colorspace [in (current-input-port)])
+```
 
 Creates and returns a new instance of the `image` structure type.
 Its `pixels` field is filled with RGBA data from the input port `in`.
 
-### `(image-write-rgba img [out (current-output-port)])`
+```racket
+(image-write-rgba img [out (current-output-port)])
+```
 
 Write the RGBA data of the image `img` to the output port `out`.
 
-### `(image-read-qoi [in (current-input-port)])`
+```racket
+(image-read-qoi [in (current-input-port)])
+```
 
 Creates and returns a new instance of the `image` structure type.
 This function reads and decodes QOI data from the input port `in` and fills the
 `pixels` field of the image with the decoded RGBA data.
 
-### `(image-write-qoi img [out (current-output-port)])`
+```racket
+(image-write-qoi img [out (current-output-port)])
+```
 
 Encode the RGBA data of the image `img` to the QOI format and write the result
 to the output port `out`.
