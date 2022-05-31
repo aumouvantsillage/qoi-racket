@@ -53,19 +53,16 @@
               ; Add the current pixel to the index.
               (vector-set! pixel-index pos pixel)
               ; Check whether differential or luma encoding can be applied.
-              (cond [(not (zero? da))
-                     ; If the alpha value has changed, write the new ARGB pixel data (QOI_OP_RGBA).
-                     (write-qoi-op-rgba pixel out)]
-                    [(and (<= -2 dr 1) (<= -2 dg 1) (<= -2 db 1))
-                     ; If the RGB deltas are small enough, encode the differences (QOI_OP_DIFF).
-                     (write-qoi-op-diff dr dg db out)]
-                    [(and (<= -32 dg 31) (<= -8 dr-dg 7) (<= -8 db-dg 7))
-                     ; Use the green delta as a reference to encode the relative
-                     ; red and blue deltas (QOI_OP_LUMA).)
-                     (write-qoi-op-luma dg dr-dg db-dg out)]
-                    [else
-                     ; As a fallback, write the RGB data (QOI_OP_RGB).
-                     (write-qoi-op-rgb pixel out)])))
+              (cond
+                ; If the alpha value has changed, write the new ARGB pixel data (QOI_OP_RGBA).
+                [(not (zero? da)) (write-qoi-op-rgba pixel out)]
+                ; If the RGB deltas are small enough, encode the differences (QOI_OP_DIFF).
+                [(can-use-op-diff? dr dg db) (write-qoi-op-diff dr dg db out)]
+                ; Use the green delta as a reference to encode the relative
+                ; red and blue deltas (QOI_OP_LUMA).)
+                [(can-use-op-luma? dg dr-dg db-dg) (write-qoi-op-luma dg dr-dg db-dg out)]
+                ; As a fallback, write the RGB data (QOI_OP_RGB).
+                [else (write-qoi-op-rgb pixel out)])))
           ; Reset the current run length.
           (values pixel 0)))))
   ; Write the last run if applicable.

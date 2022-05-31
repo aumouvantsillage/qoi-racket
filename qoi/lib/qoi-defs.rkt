@@ -41,6 +41,18 @@
   (match-define (list r g b a) (bytes->list pixel))
   (remainder (+ (* 3 r) (* 5 g) (* 7 b) (* 11 a)) 64))
 
+(define (can-use-op-diff? dr dg db)
+  (define lo (- qoi-op-diff-bias))
+  (define hi (sub1 qoi-op-diff-bias))
+  (and (<= lo dr hi) (<= lo dg hi) (<= lo db hi)))
+
+(define (can-use-op-luma? dg dr-dg db-dg)
+  (define dg-lo (- qoi-op-luma-dg-bias))
+  (define dg-hi (sub1 qoi-op-luma-dg-bias))
+  (define drb-lo (- qoi-op-luma-drb-bias))
+  (define drb-hi (sub1 qoi-op-luma-drb-bias))
+  (and (<= dg-lo dg dg-hi) (<= drb-lo dr-dg drb-hi) (<= drb-lo db-dg drb-hi)))
+
 (define (qoi- a b)
   (define a-b (- a b))
   (cond [(> a-b  127) (- a-b 256)]
