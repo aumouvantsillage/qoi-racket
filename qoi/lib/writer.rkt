@@ -11,7 +11,11 @@
 (provide image-write-qoi)
 
 (define (image-write-qoi img [out (current-output-port)])
-  ; Write the QOI header.
+  (write-qoi-header img out)
+  (write-qoi-data img out)
+  (write-bytes qoi-end-marker out))
+
+(define (write-qoi-header img out)
   (write-bytes
     (bytes-append
       qoi-magic
@@ -21,13 +25,13 @@
       (bytes
         (image-channels   img)
         (image-colorspace img)))
-    out)
+    out))
 
+(define (write-qoi-data img out)
   ; Get the ARGB pixel data from the image.
   (define pixels (image-pixels img))
   ; Allocate the index of previous pixel values.
   (define pixel-index (make-vector 64 (make-bytes 4)))
-
   ; Process pixels in raster-scan order and write QOI chunks to the output
   ; port, except for a possible last run.
   (define last-run-length
@@ -43,9 +47,8 @@
          (write-qoi-op-runs run-length out)
          (write-qoi-chunk pixel pixel-prev pixel-index out)
          (values pixel 0)])))
-
-  (write-qoi-op-runs last-run-length out)
-  (write-bytes qoi-end-marker out))
+  ; Write the last runs if applicable.
+  (write-qoi-op-runs last-run-length out))
 
 (define (write-qoi-chunk pixel pixel-prev pixel-index out)
   (define pos (qoi-index-position pixel))
