@@ -28,47 +28,42 @@
   ; Allocate the index of previous pixel values.
   (define pixel-index (make-vector 64 (make-bytes 4)))
 
+  ; Process pixels in raster-scan order and write QOI chunks to the output
+  ; port, except for a possible last run.
   (define last-run-length
-    ; Process pixels in raster-scan order.
-    ; The loop will return the length of the last run.
     (for/fold ([pixel-prev qoi-pixel-init]
                [run-length 0]
                #:result run-length)
               ([n (in-range 0 (bytes-length pixels) 4)])
       (define pixel (subbytes pixels n (+ 4 n)))
-      ; Check whether we are continuing a run.
-      (if (equal? pixel pixel-prev)
-        ; If the pixel value has not changed, increment the current run length.
-        (values pixel (add1 run-length))
-        ; If the pixel value has changed, locate it in the index.
-        (let ([pos (qoi-index-position pixel)])
-          ; Write the previous runs if applicable.
-          (write-qoi-op-runs run-length out)
-          ; Check whether the current pixel is present in the index.
-          (if (equal? pixel (vector-ref pixel-index pos))
-            ; If the current pixel is present in the index, write a QOI_OP_INDEX chunk.
-            (write-qoi-op-index pos out)
-            ; Otherwise, compute the difference from the previous to the current pixel.
-            (let-values ([(dr dg db da dr-dg db-dg) (pixel-diff pixel pixel-prev)])
-              ; Add the current pixel to the index.
-              (vector-set! pixel-index pos pixel)
-              ; Check whether differential or luma encoding can be applied.
-              (cond
-                ; If the alpha value has changed, write the new ARGB pixel data (QOI_OP_RGBA).
-                [(not (zero? da)) (write-qoi-op-rgba pixel out)]
-                ; If the RGB deltas are small enough, encode the differences (QOI_OP_DIFF).
-                [(can-use-op-diff? dr dg db) (write-qoi-op-diff dr dg db out)]
-                ; Use the green delta as a reference to encode the relative
-                ; red and blue deltas (QOI_OP_LUMA).)
-                [(can-use-op-luma? dg dr-dg db-dg) (write-qoi-op-luma dg dr-dg db-dg out)]
-                ; As a fallback, write the RGB data (QOI_OP_RGB).
-                [else (write-qoi-op-rgb pixel out)])))
-          ; Reset the current run length.
-          (values pixel 0)))))
-  ; Write the last run if applicable.
+      (cond
+        [(equal? pixel pixel-prev)
+         (values pixel (add1 run-length))]
+        [else
+         (write-qoi-op-runs run-length out)
+         (write-qoi-chunk pixel pixel-prev pixel-index out)
+         (values pixel 0)])))
+
   (write-qoi-op-runs last-run-length out)
-  ; Write the QOI end marker.
   (write-bytes qoi-end-marker out))
+
+(define (write-qoi-chunk pixel pixel-prev pixel-index out)
+  (define pos (qoi-index-position pixel))
+  (cond
+    [(equal? pixel (vector-ref pixel-index pos))
+     (write-qoi-op-index pos out)]
+    [else
+     (vector-set! pixel-index pos pixel)
+     (define-values (dr dg db da dr-dg db-dg) (pixel-diff pixel pixel-prev))
+     (cond
+       [(not (zero? da))
+        (write-qoi-op-rgba pixel out)]
+       [(can-use-op-diff? dr dg db)
+        (write-qoi-op-diff dr dg db out)]
+       [(can-use-op-luma? dg dr-dg db-dg)
+        (write-qoi-op-luma dg dr-dg db-dg out)]
+       [else
+        (write-qoi-op-rgb pixel out)])]))
 
 (define (pixel-diff pixel pixel-prev)
   (match-define (list dr dg db da)
