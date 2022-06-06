@@ -7,6 +7,11 @@ an encoder and a decoder for the [QOI image format](https://qoiformat.org/).
 At the moment, this implementation can only convert raw RGBA images to/from QOI.
 Other image formats can be handled by separate image manipulation tools or libraries.
 
+Credits
+-------
+
+Thanks to Matthias Felleisen for reviewing and improving the code.
+
 Installation
 ------------
 

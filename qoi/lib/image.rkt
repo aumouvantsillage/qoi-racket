@@ -9,7 +9,13 @@
 
 (provide
   (struct-out image)
-  make-image
+  (contract-out
+    [make-image (->i ([width      (and/c integer? (>/c 0))]
+                      [height     (and/c integer? (>/c 0))]
+                      [channels   (between/c 3 4)]
+                      [colorspace (between/c 0 1)])
+                     #:pre (width height) (<= (* width height) qoi-pixels-max)
+                     [result image?])])
   image-read-rgba
   image-write-rgba)
 
@@ -17,18 +23,7 @@
   #:constructor-name private-image)
 
 (define (make-image width height channels colorspace)
-  (unless (> width 0)
-    (raise-argument-error 'make-image "width > 0" width))
-  (unless (> height 0)
-    (raise-argument-error 'make-image "height > 0" height))
-  (define size (* width height))
-  (unless (<= size qoi-pixels-max)
-    (raise-argument-error 'make-image (format "width * height <= ~a" qoi-pixels-max) size))
-  (unless (<= 3 channels 4)
-    (raise-argument-error 'make-image "channels = 3|4" channels))
-  (unless (<= 0 colorspace 1)
-    (raise-argument-error 'make-image "colorspace = 0|1" colorspace))
-  (private-image width height channels colorspace (make-bytes (* 4 size))))
+  (private-image width height channels colorspace (make-bytes (* 4 width height))))
 
 (define (image-read-rgba width height channels colorspace [in (current-input-port)])
   (define img (make-image width height channels colorspace))
